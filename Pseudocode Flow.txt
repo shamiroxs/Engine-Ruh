@@ -1,0 +1,51 @@
+// Step 1: Perception
+stimulus = "wolf seen near field"
+MemorySystem.store("Saw a wolf at 20m", importance=high, context="field")
+
+// Step 2: Instinct Check
+if stimulus == "wolf seen":
+    InstinctSystem.trigger("danger")
+    instinct_suggestion = "run away"
+    instinct_weight = 0.8
+
+// Step 3: Emotion Update
+EmotionSystem.processStimulus("wolf seen")
+EmotionSystem.increaseEmotion("fear", by=0.3)
+emotion_suggestion = "hide"
+emotion_weight = 0.7
+
+// Step 4: Logic Evaluation
+prior_experience = MemorySystem.query("wolf encounters")
+if prior_experience == "someone got attacked":
+    LogicSystem.evaluate("avoid wolves", confidence=0.9)
+    logic_suggestion = "run away"
+    logic_weight = 0.6
+else:
+    logic_suggestion = "observe"
+    logic_weight = 0.4
+
+// Step 5: Personality Adjustment
+PersonalityProfile = {
+    fearful: 0.9,
+    empathy: 0.7,
+    logic: 0.3
+}
+
+Adjusted Weights:
+- instinct: 0.8 * 0.9 = 0.72
+- emotion: 0.7 * 0.9 = 0.63
+- logic: 0.6 * 0.3 = 0.18
+
+// Step 6: Decision Making
+DecisionManager.collect([
+    ("run away", 0.72),
+    ("hide", 0.63),
+    ("observe", 0.18)
+])
+
+chosen_action = DecisionManager.selectHighestWeighted()  // "run away"
+
+// Step 7: Action Execution
+ActionSystem.perform("run away")
+MemorySystem.store("Ran away from wolf", result="safe", emotion="fear", outcome="positive")
+EmotionSystem.adjust("fear", by=-0.1)
