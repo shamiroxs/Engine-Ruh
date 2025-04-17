@@ -24,3 +24,13 @@ for emotion, intensity in emotion_system.current_emotions.items():
 print("\nEmotion History:")
 for timestamp, emotion, intensity in emotion_system.emotion_history:
     print(f"  [{timestamp:.2f}] {emotion} +{intensity:.2f}")
+    
+print("\nDecaying emotions...")
+emotion_system.decay_emotions()
+
+print("\nAfter Decay:")
+for emotion, intensity in emotion_system.current_emotions.items():
+    print(f"  {emotion}: {intensity:.2f}")
+
+dominant = emotion_system.get_dominant_emotion()
+print(f"\nDominant Emotion: {dominant}")

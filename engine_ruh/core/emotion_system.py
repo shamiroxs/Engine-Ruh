@@ -38,16 +38,34 @@ class EmotionSystem:
 
 
     def decay_emotions(self):
-        """
-        Gradually reduces emotional intensities over time.
-        """
-        pass
+    	"""
+    	Gradually decays each emotion's intensity by the decay rate.
+    	Removes emotions that fall below the threshold.
+    	"""
+    	to_remove = []
 
-    def get_dominant_emotion(self) -> Optional[str]:
-        """
-        Returns the most intense current emotion above the threshold, or None.
-        """
-        pass
+    	for emotion, intensity in self.current_emotions.items():
+        	new_intensity = max(0.0, intensity - self.decay_rate)
+
+        	if new_intensity < self.emotion_threshold:
+        	    to_remove.append(emotion)
+        	else:
+        	    self.current_emotions[emotion] = new_intensity
+
+    	for emotion in to_remove:
+        	del self.current_emotions[emotion]
+
+
+    def get_dominant_emotion(self):
+    	"""
+    	Returns the emotion with the highest intensity.
+    	Returns None if there are no active emotions.
+    	"""
+    	if not self.current_emotions:
+        	return None
+
+    	return max(self.current_emotions.items(), key=lambda item: item[1])[0]
+
 
     def get_emotion_profile(self) -> Dict[str, float]:
         """
