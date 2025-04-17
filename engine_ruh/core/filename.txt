@@ -1,0 +1,11 @@
+FIle names
+
+emotion_system.py
+
+instinct_system.py
+
+logic_system.py
+
+decision_manager.py
+
+cognition_controller.py
