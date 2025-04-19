@@ -17,11 +17,28 @@ class MemoryEntry:
         return f"<MemoryEntry {self.event_type} [{self.emotion}] @ {self.timestamp}>"
 
 class MemorySystem:
-    def __init__(self, decay_rate=0.01, memory_threshold=0.5):
+    def __init__(self, capacity: int = 10, decay_rate=0.01, memory_threshold=0.5):
         self.short_term_memory = deque()
         self.long_term_memory = []
         self.memory_decay_rate = decay_rate
         self.memory_threshold = memory_threshold
+        self.capacity = capacity
+        self.memory = []
+    
+    def remember(self, event: str):
+        """Store a memory event, evict the oldest if capacity is exceeded."""
+        if len(self.memory) >= self.capacity:
+            self.memory.pop(0)  # Remove the oldest memory
+        self.memory.append(event)
+
+    def recall_recent_events(self):
+        """Return the most recent memories."""
+        return self.memory
+
+    def clear_memory(self):
+        """Clear all stored memories."""
+        self.memory = []
+
 
     def store(self, event_type, context, emotion, importance, outcome, tags=None):
         memory = MemoryEntry(event_type, context, emotion, importance, outcome, tags)

@@ -2,6 +2,7 @@ from memory_system import MemorySystem
 import time
 
 def run_tests():
+	#test 1
     memsys = MemorySystem()
 
     print("=== Storing memories ===")
@@ -70,6 +71,21 @@ def run_tests():
     time.sleep(2)
     memsys.age_memories()
     print(f"After aging: {memsys}")
+    
+    #test 2
+    # Create a MemorySystem with a capacity of 3
+    memory_system = MemorySystem(capacity=3)
+    # Adding some memories
+    memory_system.remember("Found a berry bush")
+    memory_system.remember("Encountered an animal")
+    memory_system.remember("Discovered a new area")
+    
+    # Display memories (expected: 3 memories)
+    print("Current Memories:", memory_system.recall_recent_events())
+    
+    # Add more memories and see the evictions
+    memory_system.remember("Met another NPC")
+    print("Updated Memories:", memory_system.recall_recent_events())
 
 if __name__ == "__main__":
     run_tests()
