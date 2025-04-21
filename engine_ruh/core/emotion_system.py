@@ -1,86 +1,68 @@
-from typing import Dict, List, Tuple, Optional
-import time
+from datetime import datetime, timedelta
+import math
 
 class EmotionSystem:
-    """
-    Tracks and updates the NPC's emotional state over time.
-    Influences decision-making and behavior based on dominant emotions.
-    """
+    def __init__(self, personality_traits=None):
+        self.current_emotions = {}  # { 'fear': {'intensity': 0.8, 'timestamp': datetime(...)}, ... }
+        self.emotion_history = []
+        self.max_history_size = 100
+        self.personality_traits = personality_traits or {
+            'sensitivity_fear': 1.0,
+            'sensitivity_joy': 1.0,
+            'forgetfulness': 1.0  # higher = forgets faster
+        }
 
-    def __init__(self, decay_rate: float = 0.01, max_emotion_value: float = 1.0):
-        self.current_emotions: Dict[str, float] = {}
-        self.decay_rate: float = decay_rate
-        self.max_emotion_value: float = max_emotion_value
-        self.emotion_threshold: float = 0.05  # Below this, emotion is considered inactive
-        self.emotion_history: List[Tuple[float, str, float]] = []
-        self.personality_modifiers: Dict[str, float] = {}  # Optional traits like fear_sensitivity
+    def get_emotion_profile(self):
+        """Returns decayed emotional state."""
+        decayed_profile = {}
+        now = datetime.utcnow()
+        forgetfulness = self.personality_traits.get('forgetfulness', 1.0)
+        decay_rate = 0.1 * forgetfulness  # Base decay rate modulated by forgetfulness
 
-    def apply_emotion(self, emotion: str, intensity: float):
-    	"""
-    	Applies a new emotion to the system, increasing its intensity.
-    	Intensity is adjusted via personality modifiers and capped at max_emotion_value.
-    	"""
-    	if intensity <= 0:
-    	    return  # Skip non-positive values
+        for emotion, data in self.current_emotions.items():
+            elapsed = (now - data['timestamp']).total_seconds()
+            decayed_intensity = data['intensity'] * math.exp(-decay_rate * elapsed)
+            if decayed_intensity > 0.01:  # threshold to remove stale emotions
+                decayed_profile[emotion] = round(decayed_intensity, 3)
 
-    	# Apply personality modifier if available
-    	modifier_key = f"{emotion}_sensitivity"
-    	if modifier_key in self.personality_modifiers:
-    	    intensity *= self.personality_modifiers[modifier_key]
+        return decayed_profile
 
-    	# Add to current emotion intensity
-    	current = self.current_emotions.get(emotion, 0.0)
-    	updated = min(current + intensity, self.max_emotion_value)
-    	self.current_emotions[emotion] = updated
+    def adjust_for_personality(self, emotion_name: str, intensity: float) -> float:
+        modifier = self.personality_traits.get(f"sensitivity_{emotion_name}", 1.0)
+        return intensity * modifier
 
-    	# Record to history
-    	self.record_emotion_history(emotion, intensity)
+    def update_emotion(self, emotion_name: str, raw_intensity: float):
+        """Applies new emotion and adjusts existing intensity."""
+        now = datetime.utcnow()
+        adjusted = self.adjust_for_personality(emotion_name, raw_intensity)
+        previous = self.current_emotions.get(emotion_name)
 
+        if previous:
+            # Additive blending of new emotion
+            elapsed = (now - previous['timestamp']).total_seconds()
+            forgetfulness = self.personality_traits.get('forgetfulness', 1.0)
+            decay_rate = 0.1 * forgetfulness
+            decayed = previous['intensity'] * math.exp(-decay_rate * elapsed)
+            new_intensity = min(decayed + adjusted, 1.0)
+        else:
+            new_intensity = min(adjusted, 1.0)
 
-    def decay_emotions(self):
-    	"""
-    	Gradually decays each emotion's intensity by the decay rate.
-    	Removes emotions that fall below the threshold.
-    	"""
-    	to_remove = []
+        self.current_emotions[emotion_name] = {
+            'intensity': new_intensity,
+            'timestamp': now
+        }
 
-    	for emotion, intensity in self.current_emotions.items():
-        	new_intensity = max(0.0, intensity - self.decay_rate)
+        self.record_emotion_history(emotion_name, new_intensity)
 
-        	if new_intensity < self.emotion_threshold:
-        	    to_remove.append(emotion)
-        	else:
-        	    self.current_emotions[emotion] = new_intensity
+    def record_emotion_history(self, emotion_name: str, intensity: float):
+        """Logs emotion events with intensity. Older entries are trimmed."""
+        timestamp = datetime.utcnow().isoformat()
+        self.emotion_history.append((timestamp, emotion_name, intensity))
 
-    	for emotion in to_remove:
-        	del self.current_emotions[emotion]
+        if len(self.emotion_history) > self.max_history_size:
+            self.emotion_history.pop(0)
 
-
-    def get_dominant_emotion(self):
-    	"""
-    	Returns the emotion with the highest intensity.
-    	Returns None if there are no active emotions.
-    	"""
-    	if not self.current_emotions:
-        	return None
-
-    	return max(self.current_emotions.items(), key=lambda item: item[1])[0]
-
-
-    def get_emotion_profile(self) -> Dict[str, float]:
-        """
-        Returns the current state of all emotions (filtered or full).
-        """
-        pass
-
-    def adjust_for_personality(self, emotion: str, intensity: float) -> float:
-        """
-        Modifies incoming emotion based on character's personality sensitivity/resistance.
-        """
-        pass
-
-    def record_emotion_history(self, emotion: str, intensity: float):
-        """
-        Stores emotion change in history log for tracking or learning.
-        """
-        pass
+    def get_emotion_level(self, emotion_name: str) -> float:
+        """Returns decayed intensity of a specific emotion."""
+        profile = self.get_emotion_profile()
+        return profile.get(emotion_name, 0.0)

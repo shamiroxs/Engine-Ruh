@@ -1,106 +1,48 @@
-import time
-
-from collections import deque
+import random
 from datetime import datetime
+from typing import List
+from collections import deque
+
 
 class MemoryEntry:
-    def __init__(self, event_type, context, emotion, importance, outcome, tags=None):
-        self.event_type = event_type
-        self.context = context
-        self.timestamp = datetime.now()
-        self.emotion = emotion
-        self.importance = importance  # 0.0 to 1.0
-        self.outcome = outcome
-        self.tags = tags or []  # Optional list of labels like ["danger", "wolf", "exploration"]
+    def __init__(self, timestamp, description, emotion_tag=None, goal_tag=None, intensity=0.0):
+        self.timestamp = timestamp
+        self.description = description
+        self.emotion_tag = emotion_tag
+        self.goal_tag = goal_tag
+        self.intensity = intensity  # Emotional intensity influences memory strength
 
     def __repr__(self):
-        return f"<MemoryEntry {self.event_type} [{self.emotion}] @ {self.timestamp}>"
+        return f"<MemoryEntry {self.timestamp}: {self.description} (Emotion: {self.emotion_tag}, Intensity: {self.intensity})>"
+
 
 class MemorySystem:
-    def __init__(self, capacity: int = 10, decay_rate=0.01, memory_threshold=0.5):
-        self.short_term_memory = deque()
-        self.long_term_memory = []
-        self.memory_decay_rate = decay_rate
-        self.memory_threshold = memory_threshold
-        self.capacity = capacity
-        self.memory = []
-    
-    def remember(self, event: str):
-        """Store a memory event, evict the oldest if capacity is exceeded."""
-        if len(self.memory) >= self.capacity:
-            self.memory.pop(0)  # Remove the oldest memory
-        self.memory.append(event)
+    def __init__(self, capacity: int = 100):
+        self.memory = deque(maxlen=capacity)  # Automatically discards oldest if full
+        self.personality_traits = {
+            "forgetfulness": 0.2  # 0.0 = perfect memory, 1.0 = very forgetful
+        }
 
-    def recall_recent_events(self):
-        """Return the most recent memories."""
-        return self.memory
+    def add_memory(self, description, emotion_tag=None, goal_tag=None, intensity=0.0):
+        timestamp = datetime.utcnow().isoformat()
+        entry = MemoryEntry(timestamp, description, emotion_tag, goal_tag, intensity)
 
-    def clear_memory(self):
-        """Clear all stored memories."""
-        self.memory = []
+        # Forgetfulness check (we might skip storing some low-intensity memories)
+        forgetfulness = self.personality_traits.get("forgetfulness", 0.0)
+        chance_to_forget = forgetfulness * (1.0 - intensity)
+        if random.random() < chance_to_forget:
+            return  # Memory was too weak and forgotten
 
+        self.memory.append(entry)
 
-    def store(self, event_type, context, emotion, importance, outcome, tags=None):
-        memory = MemoryEntry(event_type, context, emotion, importance, outcome, tags)
-        self.short_term_memory.append(memory)
+    def recall_recent_events(self, limit: int = 5) -> List[MemoryEntry]:
+        """Returns the most recent memory entries up to a limit."""
+        return list(self.memory)[-limit:]
 
-        if importance >= self.memory_threshold:
-            self.long_term_memory.append(memory)
-
-    def query(self, keyword):
-        """
-        Query memories based on keyword in event_type, context, or tags.
-        Results are sorted by importance (desc), then recency.
-        """
-        results = [
-            mem for mem in self.long_term_memory
-            if keyword in mem.event_type or keyword in mem.context or keyword in mem.tags
-        ]
-        return sorted(results, key=lambda mem: (mem.importance, mem.timestamp), reverse=True)
-
-    def recall_recent(self, event_type):
-        """
-        Get recent memories of a certain event type from short-term memory.
-        """
-        return [
-            mem for mem in self.short_term_memory
-            if event_type in mem.event_type
-        ]
-
-    def evaluate_experience(self, related_to):
-        """
-        Analyze memory outcomes and emotional tone of past related experiences.
-        Returns a simple sentiment analysis: 'positive', 'negative', or 'neutral'.
-        """
-        related = self.query(related_to)
-        if not related:
-            return "unknown"
-
-        positive = 0
-        negative = 0
-
-        for mem in related:
-            if mem.emotion in ['joy', 'trust', 'relief']:
-                positive += mem.importance
-            elif mem.emotion in ['fear', 'anger', 'disgust', 'sadness']:
-                negative += mem.importance
-
-        if positive > negative:
-            return "positive"
-        elif negative > positive:
-            return "negative"
-        else:
-            return "neutral"
-
-    def age_memories(self):
-        """
-        Decay short-term memories over time. Removes old low-importance entries.
-        """
-        current_time = datetime.now()
-        for memory in list(self.short_term_memory):
-            age_in_seconds = (current_time - memory.timestamp).total_seconds()
-            if age_in_seconds > self.memory_decay_rate * 100:
-                self.short_term_memory.remove(memory)
-
-    def __str__(self):
-        return f"Short-Term: {len(self.short_term_memory)} | Long-Term: {len(self.long_term_memory)}"
+    def reason_about_goal(self, goal_name: str) -> float:
+        """Estimates the relevance of a goal based on recent memory frequency."""
+        recent = self.recall_recent_events(20)
+        related = [entry for entry in recent if entry.goal_tag == goal_name]
+        if not recent:
+            return 0.0
+        return len(related) / len(recent)  # Score from 0.0 to 1.0
