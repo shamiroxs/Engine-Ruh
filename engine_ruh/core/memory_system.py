@@ -17,9 +17,11 @@ class MemoryEntry:
 
 
 class MemorySystem:
-    def __init__(self, capacity: int = 100):
-        self.memory = deque(maxlen=capacity)  # Automatically discards oldest if full
-        self.personality_traits = {
+    def __init__(self,  npc_id, capacity=50):
+    	self.npc_id = npc_id
+    	self.capacity = capacity
+    	self.memory = deque(maxlen=capacity)  # Automatically discards oldest if full
+    	self.personality_traits = {
             "forgetfulness": 0.2  # 0.0 = perfect memory, 1.0 = very forgetful
         }
 
