@@ -1,7 +1,7 @@
 from memory_system import MemorySystem
 from emotion_system import EmotionSystem
 from instinct_system import InstinctSystem
-from logic_system import LogicSystem
+from logic_system import LogicSystem, Goal, Action
 from decision_manager import DecisionManager
 
 
@@ -11,15 +11,37 @@ class CognitionController:
         self.memory = MemorySystem(npc_id)
         self.emotion = EmotionSystem(npc_id)
         self.instinct = InstinctSystem(npc_id)
-        self.logic = LogicSystem(npc_id)
-        self.decision_manager = DecisionManager(npc_id)
-
+        
+        goals = [
+        Goal(name="Survival", base_urgency=5.0, related_emotions=["fear"]),
+        Goal(name="Socialize", base_urgency=2.5, related_emotions=["joy"]),
+	]
+        
+        actions = [
+    	Action(name="run_away", associated_goals=["Survival"]),
+    	Action(name="talk", associated_goals=["Socialize"]),
+	]
+	
+        personality = {"fear": 0.8, "joy": 0.4}
+	
+        self.logic = LogicSystem(goals, actions, self.memory, self.emotion, personality)
+        self.decision_manager = DecisionManager(
+    	memory_system=self.memory,
+    	emotion_system=self.emotion,
+    	instinct_system=self.instinct,
+    	logic_system=self.logic,
+    	personality=personality  # reuse the same personality dict from above
+	)
     def perceive(self, external_inputs):
         """
         Accepts environmental stimuli and updates memory, emotions, and instinct triggers.
         """
         self.memory.record_perception(external_inputs)
-        self.emotion.update_state(external_inputs)
+        
+        for emotion, intensity in external_inputs.items():
+           self.emotion.update_emotion(emotion, intensity)
+        
+        
         self.instinct.receive_inputs(external_inputs)
 
     def evaluate(self):

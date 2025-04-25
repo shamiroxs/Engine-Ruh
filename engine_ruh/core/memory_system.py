@@ -48,3 +48,13 @@ class MemorySystem:
         if not recent:
             return 0.0
         return len(related) / len(recent)  # Score from 0.0 to 1.0
+        
+    def record_perception(self, external_inputs: dict):
+        """
+        Basic interpretation of inputs to memory entries.
+        Can be extended with goal/emotion tagging logic.
+        """
+        for key, value in external_inputs.items():
+            description = f"Perceived {key}: {value}"
+            self.add_memory(description=description, goal_tag=key)
+
